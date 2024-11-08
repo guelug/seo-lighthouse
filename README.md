@@ -1,0 +1,2 @@
+# seo-lighthouse
+Raycast Extension
