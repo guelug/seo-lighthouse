@@ -9,11 +9,21 @@
     "Productivity"
   ],
   "license": "MIT",
+  "preferences": [
+    {
+      "name": "outputPath",
+      "type": "directory",
+      "title": "Output Path",
+      "description": "Select the directory where JSON reports will be saved.",
+      "default": "",
+      "required": true
+    }
+  ],
   "commands": [
     {
       "name": "seo-lighthouse",
       "title": "SEO Lighthouse",
-      "description": "Run SEO Lighthouse analysis", 
+      "description": "Run SEO Lighthouse analysis",
       "mode": "view"
     }
   ],
