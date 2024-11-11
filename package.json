@@ -9,6 +9,11 @@
   "categories": [
     "Productivity", "Web", "Other"
   ],
+  "screenshots": [
+    "metadata/main-view.png",
+    "metadata/main-view-v2.png",
+    "metadata/report-view.png"
+  ],
   "license": "MIT",
   "preferences": [
     {
