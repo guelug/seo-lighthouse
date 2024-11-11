@@ -18,7 +18,7 @@ declare module 'lighthouse' {
     };
     emulatedUserAgent?: string;
     preset?: 'perf' | 'desktop' | 'experimental';
-    config?: any;
+    config?: Record<string, unknown>;
   }
 
   interface LighthouseResult {
@@ -30,7 +30,7 @@ declare module 'lighthouse' {
           title: string;
           score: number;
           description: string;
-        }
+        };
       };
       audits: {
         [key: string]: {
@@ -41,13 +41,13 @@ declare module 'lighthouse' {
           numericValue?: number;
           details?: {
             type: string;
-            items?: any[];
+            items?: Array<Record<string, unknown>>;
           };
-        }
+        };
       };
     };
     report: string;
-    artifacts?: any;
+    artifacts?: Record<string, unknown>;
   }
 
   function lighthouse(
