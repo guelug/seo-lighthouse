@@ -50,6 +50,33 @@ interface LighthouseReport {
   };
 }
 
+// Utility function to validate and process URL
+function processUrl(url: string): string {
+  // Trim whitespace
+  url = url.trim();
+
+  // Check if URL is already prefixed with http:// or https://
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  // Remove any leading www.
+  url = url.replace(/^www\./i, '');
+
+  // Add https:// by default
+  return `https://${url}`;
+}
+
+// Validate URL format
+function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Lighthouse Path Finding Function
 async function findLighthousePath(): Promise<string | null> {
   const potentialPaths = [
@@ -86,6 +113,12 @@ function LighthouseReportView({ reportPath }: { reportPath: string }) {
       try {
         const reportContent = await nodeFs.readFile(reportPath, 'utf-8');
         const parsedReport = JSON.parse(reportContent);
+        
+        // Validate report structure
+        if (!parsedReport.categories && !parsedReport.audits) {
+          throw new Error("Invalid Lighthouse report format");
+        }
+        
         setReport(parsedReport);
       } catch (error) {
         console.error("Failed to load report", error);
@@ -247,16 +280,17 @@ export default function Command() {
         throw new Error("URL is required");
       }
 
+      // Process and validate URL
+      const formattedUrl = processUrl(values.url);
+      if (!isValidUrl(formattedUrl)) {
+        throw new Error("Invalid URL format");
+      }
+
       // Find Lighthouse path
       const lighthousePath = await findLighthousePath();
       if (!lighthousePath) {
         throw new Error("Lighthouse CLI not found. Please install it globally.");
       }
-
-      // Ensure URL has a protocol
-      const formattedUrl = values.url.startsWith('http') 
-        ? values.url 
-        : `https://${values.url}`;
 
       // Prepare categories
       const categories: string[] = [];
