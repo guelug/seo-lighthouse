@@ -285,23 +285,23 @@ export default function Command() {
   }
 
   async function handleSubmit(values: FormValues): Promise<void> {
-    const toast = await showToast({
+    await showToast({
       style: Toast.Style.Animated,
       title: 'Running Lighthouse Analysis...',
     });
-  
+
     try {
       // Validate URL
       if (!values.url) {
         throw new Error('URL is required');
       }
-  
+
       // Process and validate URL
       const formattedUrl = processUrl(values.url);
       if (!isValidUrl(formattedUrl)) {
         throw new Error('Invalid URL format');
       }
-  
+
       // Find Lighthouse path
       const lighthousePath = await findLighthousePath();
       if (!lighthousePath) {
@@ -309,24 +309,24 @@ export default function Command() {
           'Lighthouse CLI not found. Please install it globally.'
         );
       }
-  
+
       // Prepare categories
       const categories: string[] = [];
       if (values.performance) categories.push('performance');
       if (values.accessibility) categories.push('accessibility');
       if (values.bestPractices) categories.push('best-practices');
       if (values.seo) categories.push('seo');
-  
+
       // Fallback to all categories if none selected
       const finalCategories =
         categories.length > 0
           ? categories
           : ['performance', 'accessibility', 'best-practices', 'seo'];
-  
+
       // Prepare output path from form or preferences or fallback to temp directory
       const finalOutputDirectory =
         values.outputPath || preferences.outputPath || nodeOs.tmpdir();
-  
+
       // Create the output directory if it doesn't exist
       try {
         await nodeFs.mkdir(finalOutputDirectory, { recursive: true });
@@ -339,12 +339,12 @@ export default function Command() {
           'Invalid output path. Please provide a valid directory.'
         );
       }
-  
+
       const outputFilePath = nodePath.join(
         finalOutputDirectory,
         `lighthouse-report-${Date.now()}.json`
       );
-  
+
       // Construct Lighthouse CLI command with enhanced configuration
       const command = [
         lighthousePath,
@@ -360,17 +360,17 @@ export default function Command() {
         '--max-timeout=90000', // Increase overall timeout
         '--chrome-flags="--headless --no-sandbox --disable-gpu --disable-web-security --allow-insecure-localhost"',
       ];
-  
+
       // Add device-specific settings
       if (values.device === 'desktop') {
         command.push('--preset=desktop');
       } else {
         command.push('--form-factor=mobile');
       }
-  
+
       const fullCommand = command.join(' ');
       console.log('Executing Lighthouse command:', fullCommand);
-  
+
       try {
         // Execute Lighthouse with enhanced error handling
         const { stdout, stderr } = await execPromise(fullCommand, {
@@ -381,10 +381,10 @@ export default function Command() {
           maxBuffer: 1024 * 1024 * 10, // Increase buffer size
           timeout: 120000, // 2-minute timeout
         });
-  
+
         console.log('Lighthouse stdout:', stdout);
         console.log('Lighthouse stderr:', stderr);
-  
+
         // Check if report was created
         try {
           await nodeFs.access(outputFilePath);
@@ -392,34 +392,36 @@ export default function Command() {
           // If report file doesn't exist, throw an error
           throw new Error('Failed to generate Lighthouse report');
         }
-  
+
         // Update success toast
         await showToast({
           style: Toast.Style.Success,
           title: 'Analysis Complete',
           message: `JSON Report saved to: ${outputFilePath}`,
         });
-  
+
         // Set the report path to trigger report view
         setReportPath(outputFilePath);
-  
       } catch (execError: any) {
         // More detailed error handling for Lighthouse execution
         console.error('Lighthouse Execution Error:', execError);
-  
+
         // Specific error handling for common scenarios
         const errorMessage = execError.stderr || execError.message;
-        
-        if (errorMessage.includes('503') || 
-            errorMessage.includes('Unable to reliably load the page')) {
+
+        if (
+          errorMessage.includes('503') ||
+          errorMessage.includes('Unable to reliably load the page')
+        ) {
           await showToast({
             style: Toast.Style.Failure,
             title: 'Website Unavailable',
-            message: 'The website is temporarily unavailable or blocking the analysis. Please try again later.',
+            message:
+              'The website is temporarily unavailable or blocking the analysis. Please try again later.',
           });
           return; // Prevent further error handling
         }
-  
+
         // Generic error handling
         await showToast({
           style: Toast.Style.Failure,
@@ -429,30 +431,31 @@ export default function Command() {
       }
     } catch (error) {
       console.error('Lighthouse Analysis Error:', error);
-  
+
       // Detailed error handling
       const errorMessage =
         error instanceof Error
           ? error.message
           : 'Failed to run Lighthouse analysis';
-  
+
       // Update failure toast with specific guidance
       await showToast({
         style: Toast.Style.Failure,
         title: 'Analysis Failed',
         message: errorMessage,
       });
-  
+
       // Additional specific error handling
       if (errorMessage.includes('Lighthouse CLI not found')) {
         await showToast({
           style: Toast.Style.Failure,
           title: 'Lighthouse CLI Not Found',
-          message: 'Please install Lighthouse globally using:\n\nnpm install -g lighthouse',
+          message:
+            'Please install Lighthouse globally using:\n\nnpm install -g lighthouse',
         });
       }
     }
-  }  
+  }
 
   return (
     <Form
