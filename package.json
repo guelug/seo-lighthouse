@@ -5,6 +5,7 @@
   "description": "Lighthouse SEO Analyzer is a powerful Raycast extension that leverages Google Lighthouse to provide comprehensive SEO and performance audits for any website. Simply input a URL and choose your desired analysis mode, device type, and categories. Get detailed insights into page load speed, core web vitals, accessibility, best practices, and more.",
   "icon": "extension-icon.png",
   "author": "guelug",
+  "link": "https://www.raycast.com/guelug",
   "categories": [
     "Productivity"
   ],
@@ -37,7 +38,6 @@
     "@raycast/eslint-config": "^1.0.11",
     "@types/node": "20.8.10",
     "@types/react": "18.3.3",
-    "balanced-match": "^3.0.1",
     "eslint": "^8.57.1",
     "prettier": "^3.3.3",
     "typescript": "^5.4.5"
