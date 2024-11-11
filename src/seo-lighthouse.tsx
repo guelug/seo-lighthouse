@@ -11,13 +11,13 @@ import {
   openCommandPreferences,
 } from "@raycast/api";
 import { useState, useEffect } from "react";
-import { exec } from "child_process";
-import path from "path";
-import os from "os";
-import util from "util";
-import fs from "fs/promises";
+import * as childProcess from "node:child_process";
+import * as nodePath from "node:path";
+import * as nodeOs from "node:os";
+import * as nodeFs from "node:fs/promises";
+import { promisify } from "node:util";
 
-const execPromise = util.promisify(exec);
+const execPromise = promisify(childProcess.exec);
 
 interface FormValues {
   url: string;
@@ -30,22 +30,22 @@ interface FormValues {
 }
 
 interface Preferences {
-  outputPath?: string; // Path where JSON reports will be saved
+  outputPath?: string;
 }
 
 interface LighthouseReport {
-  categories: {
-    performance: { score: number },
-    accessibility: { score: number },
-    'best-practices': { score: number },
-    seo: { score: number }
+  categories?: {
+    performance?: { score: number, title?: string },
+    accessibility?: { score: number, title?: string },
+    'best-practices'?: { score: number, title?: string },
+    seo?: { score: number, title?: string }
   };
-  audits: {
+  audits?: {
     [key: string]: {
       title?: string;
       description?: string;
       displayValue?: string;
-      score?: number;
+      score?: number | null;
     }
   };
 }
@@ -56,14 +56,14 @@ async function findLighthousePath(): Promise<string | null> {
     '/usr/local/bin/lighthouse',
     '/usr/bin/lighthouse',
     '/opt/homebrew/bin/lighthouse',
-    `${os.homedir()}/.npm-global/bin/lighthouse`,
-    path.join(os.homedir(), '.npm', 'bin', 'lighthouse'),
-    path.join(os.homedir(), 'node_modules', '.bin', 'lighthouse')
+    `${nodeOs.homedir()}/.npm-global/bin/lighthouse`,
+    nodePath.join(nodeOs.homedir(), '.npm', 'bin', 'lighthouse'),
+    nodePath.join(nodeOs.homedir(), 'node_modules', '.bin', 'lighthouse')
   ];
 
   for (const potentialPath of potentialPaths) {
     try {
-      await fs.access(potentialPath, fs.constants.X_OK);
+      await nodeFs.access(potentialPath, nodeFs.constants.X_OK);
       return potentialPath;
     } catch {}
   }
@@ -71,27 +71,33 @@ async function findLighthousePath(): Promise<string | null> {
   try {
     const { stdout } = await execPromise('which lighthouse');
     return stdout.trim();
-  } catch {}
-
-  return null;
+  } catch {
+    return null;
+  }
 }
 
 // Lighthouse Report View Component
 function LighthouseReportView({ reportPath }: { reportPath: string }) {
   const [report, setReport] = useState<LighthouseReport | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadReport() {
       try {
-        const reportContent = await fs.readFile(reportPath, 'utf-8');
+        const reportContent = await nodeFs.readFile(reportPath, 'utf-8');
         const parsedReport = JSON.parse(reportContent);
         setReport(parsedReport);
       } catch (error) {
         console.error("Failed to load report", error);
+        setError(error instanceof Error ? error.message : "Unknown error loading report");
       }
     }
     loadReport();
   }, [reportPath]);
+
+  if (error) {
+    return <Detail markdown={`Error loading report: ${error}`} />;
+  }
 
   if (!report) {
     return <Detail markdown="Loading report..." />;
@@ -103,60 +109,82 @@ function LighthouseReportView({ reportPath }: { reportPath: string }) {
     return { source: Icon.XMarkCircle, tintColor: Color.Red };
   };
 
-  const formatScore = (score: number) => `${Math.round(score * 100)}%`;
+  const formatScore = (score: number | undefined) => 
+    score !== undefined ? `${Math.round(score * 100)}%` : 'N/A';
 
-  const markdownContent = `
-# Lighthouse Analysis Report
+  // Dynamic markdown content generation
+  const generateMarkdownContent = () => {
+    let markdownContent = "# Lighthouse Analysis Report\n\n## Overall Scores\n\n";
+    markdownContent += "| Category | Score | Status |\n";
+    markdownContent += "| -------- | ----- | ------ |\n";
 
-## Overall Scores
+    const categories = [
+      { key: 'performance', name: 'Performance' },
+      { key: 'accessibility', name: 'Accessibility' },
+      { key: 'best-practices', name: 'Best Practices' },
+      { key: 'seo', name: 'SEO' }
+    ];
 
-| Category       | Score | Status                           |
-| -------------- | ----- | -------------------------------- |
-| Performance    | ${formatScore(report.categories.performance.score)} | ${formatScore(report.categories.performance.score)} |
-| Accessibility  | ${formatScore(report.categories.accessibility.score)} | ${formatScore(report.categories.accessibility.score)} |
-| Best Practices | ${formatScore(report.categories['best-practices'].score)} | ${formatScore(report.categories['best-practices'].score)} |
-| SEO            | ${formatScore(report.categories.seo.score)} | ${formatScore(report.categories.seo.score)} |
+    categories.forEach(({ key, name }) => {
+      const category = report.categories?.[key as 'performance' | 'accessibility' | 'best-practices' | 'seo'];
+      if (category) {
+        markdownContent += `| ${name} | ${formatScore(category.score)} | ${formatScore(category.score)} |\n`;
+      }
+    });
 
-## Key Performance Metrics
+    // Performance Metrics
+    markdownContent += "\n## Key Performance Metrics\n\n### Core Web Vitals\n\n";
+    
+    const performanceMetrics = [
+      'first-contentful-paint',
+      'largest-contentful-paint',
+      'total-blocking-time',
+      'cumulative-layout-shift',
+      'interactive',
+      'speed-index'
+    ];
 
-### Core Web Vitals
+    performanceMetrics.forEach(metric => {
+      const audit = report.audits?.[metric];
+      if (audit) {
+        markdownContent += `- **${audit.title || metric}**: ${audit.displayValue || 'N/A'}\n`;
+      }
+    });
 
-- **First Contentful Paint**: ${report.audits['first-contentful-paint']?.displayValue || 'N/A'}
-- **Largest Contentful Paint**: ${report.audits['largest-contentful-paint']?.displayValue || 'N/A'}
-- **Total Blocking Time**: ${report.audits['total-blocking-time']?.displayValue || 'N/A'}
-- **Cumulative Layout Shift**: ${report.audits['cumulative-layout-shift']?.displayValue || 'N/A'}
+    return markdownContent;
+  };
 
-### Additional Insights
+  // Dynamic metadata generation
+  const generateMetadataLabels = () => {
+    const categories = [
+      { key: 'performance', name: 'Performance' },
+      { key: 'accessibility', name: 'Accessibility' },
+      { key: 'best-practices', name: 'Best Practices' },
+      { key: 'seo', name: 'SEO' }
+    ];
 
-- **Time to Interactive**: ${report.audits.interactive?.displayValue || 'N/A'}
-- **Speed Index**: ${report.audits['speed-index']?.displayValue || 'N/A'}
-`;
+    return categories
+      .filter(({ key }) => report.categories?.[key as 'performance' | 'accessibility' | 'best-practices' | 'seo'])
+      .map(({ key, name }) => {
+        const category = report.categories?.[key as 'performance' | 'accessibility' | 'best-practices' | 'seo'];
+        return category ? (
+          <Detail.Metadata.Label 
+            key={key}
+            title={`${name} Score`}
+            text={formatScore(category.score)}
+            icon={renderScoreIcon(category.score)}
+          />
+        ) : null;
+      })
+      .filter(Boolean);
+  };
 
   return (
     <Detail
-      markdown={markdownContent}
+      markdown={generateMarkdownContent()}
       metadata={
         <Detail.Metadata>
-          <Detail.Metadata.Label 
-            title="Performance Score" 
-            text={formatScore(report.categories.performance.score)}
-            icon={renderScoreIcon(report.categories.performance.score)}
-          />
-          <Detail.Metadata.Label 
-            title="Accessibility Score" 
-            text={formatScore(report.categories.accessibility.score)}
-            icon={renderScoreIcon(report.categories.accessibility.score)}
-          />
-          <Detail.Metadata.Label 
-            title="Best Practices Score" 
-            text={formatScore(report.categories['best-practices'].score)}
-            icon={renderScoreIcon(report.categories['best-practices'].score)}
-          />
-          <Detail.Metadata.Label 
-            title="SEO Score" 
-            text={formatScore(report.categories.seo.score)}
-            icon={renderScoreIcon(report.categories.seo.score)}
-          />
+          {generateMetadataLabels()}
         </Detail.Metadata>
       }
       actions={
@@ -177,7 +205,7 @@ function LighthouseReportView({ reportPath }: { reportPath: string }) {
 export default function Command() {
   const preferences: Preferences = getPreferenceValues<Preferences>();
   const [reportPath, setReportPath] = useState<string | null>(null);
-  const [outputPath, setOutputPath] = useState<string>(preferences.outputPath || os.tmpdir());
+  const [outputPath, setOutputPath] = useState<string>(preferences.outputPath || nodeOs.tmpdir());
 
   // If a report path exists, show the report view
   if (reportPath) {
@@ -199,7 +227,6 @@ export default function Command() {
         });
       }
     } catch (error) {
-      // User canceled the directory selection or an error occurred
       await showToast({
         style: Toast.Style.Failure,
         title: "Directory Selection Failed",
@@ -238,13 +265,18 @@ export default function Command() {
       if (values.bestPractices) categories.push("best-practices");
       if (values.seo) categories.push("seo");
 
+      // Fallback to all categories if none selected
+      const finalCategories = categories.length > 0 
+        ? categories 
+        : ["performance", "accessibility", "best-practices", "seo"];
+
       // Prepare output path from form or preferences or fallback to temp directory
-      const finalOutputDirectory = values.outputPath || preferences.outputPath || os.tmpdir();
+      const finalOutputDirectory = values.outputPath || preferences.outputPath || nodeOs.tmpdir();
 
       // Create the output directory if it doesn't exist
       try {
-        await fs.mkdir(finalOutputDirectory, { recursive: true });
-        const stats = await fs.stat(finalOutputDirectory);
+        await nodeFs.mkdir(finalOutputDirectory, { recursive: true });
+        const stats = await nodeFs.stat(finalOutputDirectory);
         if (!stats.isDirectory()) {
           throw new Error("Selected output path is not a directory.");
         }
@@ -252,7 +284,7 @@ export default function Command() {
         throw new Error("Invalid output path. Please provide a valid directory.");
       }
 
-      const outputFilePath = path.join(
+      const outputFilePath = nodePath.join(
         finalOutputDirectory,
         `lighthouse-report-${Date.now()}.json`
       );
@@ -263,7 +295,7 @@ export default function Command() {
         `"${formattedUrl}"`,
         `--output=json`,
         `--output-path="${outputFilePath}"`,
-        `--only-categories=${categories.join(",")}`,
+        `--only-categories=${finalCategories.join(",")}`,
         "--quiet",
         "--disable-full-page-screenshot",
         "--disable-storage-reset",
@@ -285,24 +317,15 @@ export default function Command() {
         env: {
           ...process.env,
           PATH: `${process.env.PATH || ''}:/usr/bin:/usr/local/bin:/opt/homebrew/bin:/bin`
-        }
+        },
+        maxBuffer: 1024 * 1024 * 10 // Increase buffer size
       });
 
       console.log("Lighthouse stdout:", stdout);
       console.log("Lighthouse stderr:", stderr);
 
-      // Handle specific non-critical warnings
-      if (stderr && !stderr.includes("Invalid dependency graph created, cycle detected")) {
-        // Even if there are warnings, proceed unless it's a critical error
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "Lighthouse Warnings",
-          message: stderr,
-        });
-      }
-
       // Verify report was created
-      await fs.access(outputFilePath);
+      await nodeFs.access(outputFilePath);
 
       // Update success toast
       toast.style = Toast.Style.Success;
@@ -315,12 +338,9 @@ export default function Command() {
       console.error("Lighthouse Analysis Error:", error);
 
       // Detailed error handling
-      let errorMessage: string;
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else {
-        errorMessage = "Failed to run Lighthouse analysis";
-      }
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Failed to run Lighthouse analysis";
 
       // Update failure toast
       toast.style = Toast.Style.Failure;
