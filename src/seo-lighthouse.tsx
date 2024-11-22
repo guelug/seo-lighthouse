@@ -16,6 +16,8 @@ import * as nodePath from 'node:path';
 import * as nodeOs from 'node:os';
 import * as nodeFs from 'node:fs/promises';
 import { promisify } from 'node:util';
+import fs from "fs";
+import path from "path";
 
 const execPromise = promisify(childProcess.exec);
 
@@ -255,6 +257,23 @@ export default function Command() {
   const [outputPath, setOutputPath] = useState<string>(
     preferences.outputPath || nodeOs.tmpdir()
   );
+  const [lighthousePath, setLighthousePath] = useState("");
+
+  useEffect(() => {
+    // Try to find Lighthouse in common locations
+    const commonPaths = [
+      "/usr/local/bin/lighthouse",
+      "/usr/bin/lighthouse",
+      path.join(process.env.HOME || "", ".nvm/versions/node/v21.5.0/bin/lighthouse"),
+    ];
+
+    for (const p of commonPaths) {
+      if (fs.existsSync(p)) {
+        setLighthousePath(p);
+        break;
+      }
+    }
+  }, []);
 
   // If a report path exists, show the report view
   if (reportPath) {
@@ -382,8 +401,8 @@ export default function Command() {
           timeout: 120000, // 2-minute timeout
         });
 
-        console.log('Lighthouse stdout:', stdout);
-        console.log('Lighthouse stderr:', stderr);
+        //console.log('Lighthouse stdout:', stdout);
+        //console.log('Lighthouse stderr:', stderr);
 
         // Check if report was created
         try {
@@ -457,6 +476,10 @@ export default function Command() {
     }
   }
 
+  async function handleChangeLighthousePath(): Promise<void> {
+    await openCommandPreferences();
+  }
+
   return (
     <Form
       actions={
@@ -465,6 +488,11 @@ export default function Command() {
             title="Run Lighthouse Analysis"
             onSubmit={handleSubmit}
           />
+          <Action
+              title="Change Lighthouse Path"
+              onAction={handleChangeLighthousePath}
+              icon={Icon.Gear}          
+              />
           <Action
             title="Choose Output Directory"
             onAction={handleChooseDirectory}
