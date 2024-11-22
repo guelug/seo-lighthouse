@@ -79,7 +79,9 @@ function isValidUrl(url: string): boolean {
 }
 
 // Lighthouse Path Finding Function
-async function findLighthousePath(preferences: Preferences): Promise<string | null> {
+async function findLighthousePath(
+  preferences: Preferences
+): Promise<string | null> {
   if (preferences.lighthousePath) {
     try {
       await nodeFs.access(preferences.lighthousePath, nodeFs.constants.X_OK);
@@ -165,7 +167,8 @@ function LighthouseReportView({ reportPath }: { reportPath: string }) {
 
   // Dynamic markdown content generation
   const generateMarkdownContent = () => {
-    let markdownContent = '# Lighthouse Analysis Report\n\n## Overall Scores\n\n';
+    let markdownContent =
+      '# Lighthouse Analysis Report\n\n## Overall Scores\n\n';
     markdownContent += '| Category | Score | Status |\n';
     markdownContent += '| -------- | ----- | ------ |\n';
 
@@ -187,7 +190,8 @@ function LighthouseReportView({ reportPath }: { reportPath: string }) {
     });
 
     // Performance Metrics
-    markdownContent += '\n## Key Performance Metrics\n\n### Core Web Vitals\n\n';
+    markdownContent +=
+      '\n## Key Performance Metrics\n\n### Core Web Vitals\n\n';
 
     const performanceMetrics = [
       'first-contentful-paint',
@@ -247,7 +251,11 @@ function LighthouseReportView({ reportPath }: { reportPath: string }) {
       metadata={<Detail.Metadata>{generateMetadataLabels()}</Detail.Metadata>}
       actions={
         <ActionPanel>
-          <Action.Open title="Open Json Report" target={reportPath} icon={Icon.Document} />
+          <Action.Open
+            title="Open Json Report"
+            target={reportPath}
+            icon={Icon.Document}
+          />
           <Action.ShowInFinder path={reportPath} title="Show in Finder" />
           <Action.OpenWith path={reportPath} />
         </ActionPanel>
@@ -263,7 +271,7 @@ export default function Command() {
     preferences.outputPath || nodeOs.tmpdir()
   );
   const [lighthousePath, setLighthousePath] = useState<string>(
-    preferences.lighthousePath || ""
+    preferences.lighthousePath || ''
   );
 
   useEffect(() => {
@@ -368,7 +376,9 @@ export default function Command() {
         }
       } catch (error) {
         console.error('Output directory validation failed:', error);
-        throw new Error('Invalid output path. Please provide a valid directory.');
+        throw new Error(
+          'Invalid output path. Please provide a valid directory.'
+        );
       }
 
       const outputFilePath = nodePath.join(
@@ -496,7 +506,10 @@ export default function Command() {
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Run Lighthouse Analysis" onSubmit={handleSubmit} />
+          <Action.SubmitForm
+            title="Run Lighthouse Analysis"
+            onSubmit={handleSubmit}
+          />
           <Action
             title="Change Lighthouse Path"
             onAction={handleChangeLighthousePath}
