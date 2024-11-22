@@ -16,8 +16,6 @@ import * as nodePath from 'node:path';
 import * as nodeOs from 'node:os';
 import * as nodeFs from 'node:fs/promises';
 import { promisify } from 'node:util';
-import fs from "fs";
-import path from "path";
 
 const execPromise = promisify(childProcess.exec);
 
@@ -86,7 +84,9 @@ async function findLighthousePath(preferences: Preferences): Promise<string | nu
     try {
       await nodeFs.access(preferences.lighthousePath, nodeFs.constants.X_OK);
       return preferences.lighthousePath;
-    } catch {}
+    } catch (error) {
+      console.error('Invalid Lighthouse path:', error);
+    }
   }
 
   const potentialPaths = [
@@ -102,13 +102,16 @@ async function findLighthousePath(preferences: Preferences): Promise<string | nu
     try {
       await nodeFs.access(potentialPath, nodeFs.constants.X_OK);
       return potentialPath;
-    } catch {}
+    } catch (error) {
+      // Continue searching
+    }
   }
 
   try {
     const { stdout } = await execPromise('which lighthouse');
-    return stdout.trim();
-  } catch {
+    return stdout.trim() || null;
+  } catch (error) {
+    console.error('Lighthouse not found in PATH:', error);
     return null;
   }
 }
@@ -131,7 +134,7 @@ function LighthouseReportView({ reportPath }: { reportPath: string }) {
 
         setReport(parsedReport);
       } catch (error) {
-        console.error('Failed to load report', error);
+        console.error('Failed to load report:', error);
         setError(
           error instanceof Error
             ? error.message
@@ -162,8 +165,7 @@ function LighthouseReportView({ reportPath }: { reportPath: string }) {
 
   // Dynamic markdown content generation
   const generateMarkdownContent = () => {
-    let markdownContent =
-      '# Lighthouse Analysis Report\n\n## Overall Scores\n\n';
+    let markdownContent = '# Lighthouse Analysis Report\n\n## Overall Scores\n\n';
     markdownContent += '| Category | Score | Status |\n';
     markdownContent += '| -------- | ----- | ------ |\n';
 
@@ -185,8 +187,7 @@ function LighthouseReportView({ reportPath }: { reportPath: string }) {
     });
 
     // Performance Metrics
-    markdownContent +=
-      '\n## Key Performance Metrics\n\n### Core Web Vitals\n\n';
+    markdownContent += '\n## Key Performance Metrics\n\n### Core Web Vitals\n\n';
 
     const performanceMetrics = [
       'first-contentful-paint',
@@ -246,11 +247,7 @@ function LighthouseReportView({ reportPath }: { reportPath: string }) {
       metadata={<Detail.Metadata>{generateMetadataLabels()}</Detail.Metadata>}
       actions={
         <ActionPanel>
-          <Action.Open
-            title="Open Json Report"
-            target={reportPath}
-            icon={Icon.Document}
-          />
+          <Action.Open title="Open Json Report" target={reportPath} icon={Icon.Document} />
           <Action.ShowInFinder path={reportPath} title="Show in Finder" />
           <Action.OpenWith path={reportPath} />
         </ActionPanel>
@@ -276,6 +273,8 @@ export default function Command() {
         const foundPath = await findLighthousePath(preferences);
         if (foundPath) {
           setLighthousePath(foundPath);
+        } else {
+          console.error('Lighthouse CLI not found.');
         }
       };
       findPath();
@@ -302,6 +301,7 @@ export default function Command() {
         });
       }
     } catch (error) {
+      console.error('Directory selection failed:', error);
       await showToast({
         style: Toast.Style.Failure,
         title: 'Directory Selection Failed',
@@ -366,10 +366,9 @@ export default function Command() {
         if (!stats.isDirectory()) {
           throw new Error('Selected output path is not a directory.');
         }
-      } catch {
-        throw new Error(
-          'Invalid output path. Please provide a valid directory.'
-        );
+      } catch (error) {
+        console.error('Output directory validation failed:', error);
+        throw new Error('Invalid output path. Please provide a valid directory.');
       }
 
       const outputFilePath = nodePath.join(
@@ -405,7 +404,7 @@ export default function Command() {
 
       try {
         // Execute Lighthouse with enhanced error handling
-        const { stdout, stderr } = await execPromise(fullCommand, {
+        await execPromise(fullCommand, {
           env: {
             ...process.env,
             PATH: `${process.env.PATH || ''}:/usr/bin:/usr/local/bin:/opt/homebrew/bin:/bin`,
@@ -417,8 +416,8 @@ export default function Command() {
         // Check if report was created
         try {
           await nodeFs.access(outputFilePath);
-        } catch {
-          // If report file doesn't exist, throw an error
+        } catch (error) {
+          console.error('Report generation failed:', error);
           throw new Error('Failed to generate Lighthouse report');
         }
 
@@ -475,7 +474,10 @@ export default function Command() {
       });
 
       // Additional specific error handling
-      if (errorMessage.includes('Lighthouse CLI not found') || errorMessage.includes('invalid')) {
+      if (
+        errorMessage.includes('Lighthouse CLI not found') ||
+        errorMessage.includes('invalid')
+      ) {
         await showToast({
           style: Toast.Style.Failure,
           title: 'Lighthouse CLI Path Issue',
@@ -494,15 +496,12 @@ export default function Command() {
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm
-            title="Run Lighthouse Analysis"
-            onSubmit={handleSubmit}
-          />
+          <Action.SubmitForm title="Run Lighthouse Analysis" onSubmit={handleSubmit} />
           <Action
-              title="Change Lighthouse Path"
-              onAction={handleChangeLighthousePath}
-              icon={Icon.Gear}          
-              />
+            title="Change Lighthouse Path"
+            onAction={handleChangeLighthousePath}
+            icon={Icon.Gear}
+          />
           <Action
             title="Choose Output Directory"
             onAction={handleChooseDirectory}
