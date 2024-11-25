@@ -39,7 +39,7 @@
   ],
   "commands": [
     {
-      "name": "Seo-lighthouse",
+      "name": "seo-lighthouse",
       "title": "SEO Lighthouse",
       "description": "Run SEO Lighthouse analysis",
       "mode": "view"
