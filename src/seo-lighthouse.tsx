@@ -51,6 +51,13 @@ interface LighthouseReport {
   };
 }
 
+function expandHomeDir(filePath: string): string {
+  if (filePath.startsWith('~')) {
+    return nodePath.join(nodeOs.homedir(), filePath.slice(1));
+  }
+  return filePath;
+}
+
 // Utility function to validate and process URL
 function processUrl(url: string): string {
   // Trim whitespace
@@ -78,17 +85,28 @@ function isValidUrl(url: string): boolean {
   }
 }
 
+
+
 // Lighthouse Path Finding Function
 async function findLighthousePath(
   preferences: Preferences
 ): Promise<string | null> {
   if (preferences.lighthousePath) {
+    const expandedPath = expandHomeDir(preferences.lighthousePath);
     try {
-      await nodeFs.access(preferences.lighthousePath, nodeFs.constants.X_OK);
-      return preferences.lighthousePath;
+      await nodeFs.access(expandedPath, nodeFs.constants.X_OK);
+      return expandedPath;
     } catch (error) {
       console.error('Invalid Lighthouse path:', error);
     }
+  }
+  const localLighthousePath = nodePath.join(__dirname, 'node_modules', '.bin', 'lighthouse');
+
+  try {
+    await nodeFs.access(localLighthousePath, nodeFs.constants.X_OK);
+    return localLighthousePath;
+  } catch (error) {
+    console.error('Local Lighthouse CLI not found:', error);
   }
 
   const potentialPaths = [
@@ -341,7 +359,7 @@ export default function Command() {
       if (!finalLighthousePath) {
         if (!preferences.lighthousePath) {
           throw new Error(
-            'Lighthouse CLI not found. Please set the path manually in settings.'
+            'Lighthouse CLI not found. Please set the path manually in settings or install globally using:\n\nnpm install -g lighthouse'
           );
         } else {
           throw new Error(
@@ -505,13 +523,13 @@ export default function Command() {
   return (
     <Form
       actions={
-        <ActionPanel>
+        <ActionPanel title="Extension Preferences">
           <Action.SubmitForm
             title="Run Lighthouse Analysis"
             onSubmit={handleSubmit}
           />
           <Action
-            title="Change Lighthouse Path"
+            title="Open Extension Preferences"
             onAction={handleChangeLighthousePath}
             icon={Icon.Gear}
           />
@@ -520,11 +538,7 @@ export default function Command() {
             onAction={handleChooseDirectory}
             icon={Icon.Folder}
           />
-          <Action
-            title="Open Output Path Preferences"
-            onAction={openCommandPreferences}
-            icon={Icon.Gear}
-          />
+
         </ActionPanel>
       }
     >
