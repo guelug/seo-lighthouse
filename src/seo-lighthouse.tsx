@@ -85,8 +85,6 @@ function isValidUrl(url: string): boolean {
   }
 }
 
-
-
 // Lighthouse Path Finding Function
 async function findLighthousePath(
   preferences: Preferences
@@ -100,7 +98,13 @@ async function findLighthousePath(
       console.error('Invalid Lighthouse path:', error);
     }
   }
-  const localLighthousePath = nodePath.join(__dirname, 'node_modules', '.bin', 'lighthouse');
+
+  const localLighthousePath = nodePath.join(
+    __dirname,
+    'node_modules',
+    '.bin',
+    'lighthouse'
+  );
 
   try {
     await nodeFs.access(localLighthousePath, nodeFs.constants.X_OK);
@@ -110,9 +114,9 @@ async function findLighthousePath(
   }
 
   const potentialPaths = [
-    '/usr/local/bin/lighthouse',
-    '/usr/bin/lighthouse',
-    '/opt/homebrew/bin/lighthouse',
+    '/opt/homebrew/bin/lighthouse', // Homebrew path
+    '/usr/local/bin/lighthouse', // Typical npm global install path
+    '/usr/bin/lighthouse', // Another common path
     `${nodeOs.homedir()}/.npm-global/bin/lighthouse`,
     nodePath.join(nodeOs.homedir(), '.npm', 'bin', 'lighthouse'),
     nodePath.join(nodeOs.homedir(), 'node_modules', '.bin', 'lighthouse'),
@@ -129,11 +133,16 @@ async function findLighthousePath(
 
   try {
     const { stdout } = await execPromise('which lighthouse');
-    return stdout.trim() || null;
+    const path = stdout.trim();
+    if (path) {
+      await nodeFs.access(path, nodeFs.constants.X_OK);
+      return path;
+    }
   } catch (error) {
     console.error('Lighthouse not found in PATH:', error);
-    return null;
   }
+
+  return null;
 }
 
 // Lighthouse Report View Component
@@ -435,8 +444,9 @@ export default function Command() {
         await execPromise(fullCommand, {
           env: {
             ...process.env,
-            PATH: `${process.env.PATH || ''}:/usr/bin:/usr/local/bin:/opt/homebrew/bin:/bin`,
+            PATH: `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${process.env.PATH || ''}`,
           },
+          shell: '/bin/bash', // Specify the shell
           maxBuffer: 1024 * 1024 * 10, // Increase buffer size
           timeout: 120000, // 2-minute timeout
         });
@@ -538,7 +548,6 @@ export default function Command() {
             onAction={handleChooseDirectory}
             icon={Icon.Folder}
           />
-
         </ActionPanel>
       }
     >
