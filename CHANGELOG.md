@@ -1,5 +1,6 @@
 # SEO Lighthouse Changelog
 
+<<<<<<< HEAD
 ## [1.1.0] - 2024-01-21
 
 - Improved Lighthouse path finding mechanism
@@ -15,3 +16,6 @@
 - Device type selection (mobile/desktop)
 - Custom output path selection
 - Analysis categories selection (Performance, Accessibility, Best Practices, SEO)
+=======
+## [Initial Version] - 2024-11-26
+>>>>>>> contributions/merge-1737536008023
