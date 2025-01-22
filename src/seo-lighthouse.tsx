@@ -107,17 +107,20 @@ async function findLighthousePath(
     '/usr/local/bin/lighthouse',
     '/usr/bin/lighthouse',
     `${nodeOs.homedir()}/.npm-global/bin/lighthouse`,
-    
+
     // Then check CLI index.js files
     '/opt/homebrew/lib/node_modules/lighthouse/cli/index.js',
     '/usr/local/lib/node_modules/lighthouse/cli/index.js',
     '/usr/lib/node_modules/lighthouse/cli/index.js',
     `${nodeOs.homedir()}/.npm-global/lib/node_modules/lighthouse/cli/index.js`,
-    nodePath.join(nodeOs.homedir(), '.npm/lib/node_modules/lighthouse/cli/index.js'),
-    
+    nodePath.join(
+      nodeOs.homedir(),
+      '.npm/lib/node_modules/lighthouse/cli/index.js'
+    ),
+
     // Local installation paths (least likely)
     nodePath.join(__dirname, 'node_modules', '.bin', 'lighthouse'),
-    nodePath.join(__dirname, 'node_modules', 'lighthouse', 'cli', 'index.js')
+    nodePath.join(__dirname, 'node_modules', 'lighthouse', 'cli', 'index.js'),
   ];
 
   // Try all paths silently
@@ -153,7 +156,6 @@ async function findLighthousePath(
     return null;
   }
 }
-
 
 // Lighthouse Report View Component
 function LighthouseReportView({ reportPath }: { reportPath: string }) {
