@@ -1,5 +1,6 @@
 # SEO Lighthouse Changelog
 
+<<<<<<< HEAD
 ## [1.1.0] - 2024-01-21
 -  Improved Lighthouse path finding mechanism
 -  Added support for multiple Lighthouse installation locations
@@ -16,3 +17,6 @@
 
 ## [Initial Version] - 2024-11-26
 -  Initial version of the project with basic features.
+=======
+## [Initial Version] - 2024-11-26
+>>>>>>> contributions/merge-1737536575126
