@@ -1,7 +1,4 @@
 # SEO Lighthouse Changelog
-
-<<<<<<< HEAD
-<<<<<<< HEAD
 ## [1.1.0] - 2024-01-21
 
 - Improved Lighthouse path finding mechanism
@@ -23,3 +20,6 @@
 =======
 ## [Initial Version] - 2024-11-26
 >>>>>>> contributions/merge-1737536204927
+=======
+## [Initial Version] - 2024-11-26
+>>>>>>> contributions/merge-1737536901087
