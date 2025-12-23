@@ -613,7 +613,7 @@ ${t('email_thanks')}`;
               onAction={onReanalyze}
             />
             <Action.Open
-              title="Open Json Report"
+              title="Open JSON Report"
               target={reportPath}
               icon={Icon.Code}
             />
@@ -822,7 +822,7 @@ export default function Command() {
       />
       <Form.Dropdown
         title={t('form_device_title')}
-        {...itemProps.device as any}
+        {...(itemProps.device as any)}
       >
         <Form.Dropdown.Item
           value="mobile"
