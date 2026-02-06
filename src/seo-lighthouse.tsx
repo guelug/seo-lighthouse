@@ -151,8 +151,8 @@ function LighthouseReportView({
       markdown += `> [!NOTE]\n> **AI is analyzing findings...**\n\n---\n\n`;
     }
 
-    markdown += `## Performance & Core Metrics (Críticos)\n\n`;
-    markdown += `| ${t('status')} | Métrica | Valor | Referencia |\n| :---: | :--- | :--- | :--- |\n`;
+    markdown += `## ${t('performance_and_core_metrics')} (${t('critical')})\n\n`;
+    markdown += `| ${t('status')} | ${t('metric')} | ${t('value')} | ${t('reference')} |\n| :---: | :--- | :--- | :--- |\n`;
     const perfMetrics = [
       {
         id: 'largest-contentful-paint',
@@ -185,8 +185,8 @@ function LighthouseReportView({
       }
     });
 
-    markdown += `\n## SEO & Accessibility (Marketing)\n\n`;
-    markdown += `| ${t('status')} | Campo | Valor |\n|:---:|:---|:---|\n`;
+    markdown += `\n## ${t('seo_accessibility_marketing')}\n\n`;
+    markdown += `| ${t('status')} | ${t('field')} | ${t('value')} |\n|:---:|:---|:---|\n`;
     const seoScore = report.categories?.seo?.score;
     const accScore = report.categories?.accessibility?.score;
     if (seoScore !== undefined || accScore !== undefined) {
@@ -207,12 +207,7 @@ function LighthouseReportView({
       if (audit) {
         const extra =
           f.id === 'structured-data' && audit.details?.items
-            ? ` (${
-                (audit.details.items as any[])
-                  .map((i: any) => i?.type || i?.name)
-                  .filter(Boolean)
-                  .join(', ') || 'sin tipos'
-              })`
+            ? ` (${(audit.details.items as any[]).map((i: any) => i?.type || i?.name).filter(Boolean).join(', ') || t('no_types')})`
             : '';
         markdown += `| ${getStatusIcon(audit.score)} | ${f.label} | ${audit.displayValue || audit.title || '-'}${extra} |\n`;
       }
@@ -222,8 +217,8 @@ function LighthouseReportView({
       .filter(a => a.details && (a.details as any).type === 'opportunity')
       .slice(0, 5);
     if (opportunities.length > 0) {
-      markdown += `\n## Oportunidades Prioritarias (High ROI)\n`;
-      markdown += `| ${t('status')} | Audit | Ahorro estimado | Ítems |\n|:---:|:---|:---|:---|\n`;
+      markdown += `\n## ${t('priority_opportunities')}\n`;
+      markdown += `| ${t('status')} | ${t('audit')} | ${t('estimated_savings')} | ${t('items')} |\n|:---:|:---|:---|:---|\n`;
       opportunities.forEach(op => {
         const savingsMs = (op.details as any).overallSavingsMs;
         const savingsBytes = (op.details as any).overallSavingsBytes;
@@ -251,7 +246,7 @@ function LighthouseReportView({
       .map(d => ({ ...d, audit: report.audits?.[d.id] }))
       .filter(d => d.audit);
     if (diagAudits.length) {
-      markdown += `\n## Diagnósticos Técnicos (Debugging)\n`;
+      markdown += `\n## ${t('technical_diagnostics')}\n`;
       diagAudits.forEach(d => {
         const details = (d.audit as any)?.details;
         const blocking =
@@ -264,7 +259,7 @@ function LighthouseReportView({
 
     const warnings = (report as any).runWarnings as string[] | undefined;
     if (warnings && warnings.length) {
-      markdown += `\n### Advertencias de ejecución\n`;
+      markdown += `\n### ${t('execution_warnings')}\n`;
       warnings.forEach(w => {
         markdown += `- ⚠️ ${w}\n`;
       });
@@ -345,7 +340,7 @@ function LighthouseReportView({
         ) : null}
         {auditDuration ? (
           <Detail.Metadata.Label
-            title="Duración auditoría"
+            title={t('audit_duration')}
             text={auditDuration}
             icon={Icon.Clock}
           />
@@ -550,13 +545,13 @@ ${t('email_thanks')}`;
       showToast({
         style: Toast.Style.Success,
         title: t('send_to_developer'),
-        message: 'Borrador creado en Mail',
+        message: t('draft_created'),
       });
     } catch (error: any) {
       showToast({
         style: Toast.Style.Failure,
-        title: 'No se pudo crear el borrador',
-        message: error?.message || 'Revisa que la app Mail esté instalada',
+        title: t('could_not_create_draft'),
+        message: t('check_mail_installed'),
       });
     }
   };
@@ -589,13 +584,13 @@ ${t('email_thanks')}`;
               />
             ) : (
               <Action
-                title="Send Email (macos)"
+                title={t('send_email_macos')}
                 icon={Icon.Envelope}
                 onAction={() =>
                   showToast({
                     style: Toast.Style.Failure,
-                    title: 'No disponible en Windows',
-                    message: 'El borrador de Mail solo funciona en macOS.',
+                    title: t('not_available_windows'),
+                    message: t('mail_draft_macos_only'),
                   })
                 }
               />
@@ -603,12 +598,12 @@ ${t('email_thanks')}`;
           </ActionPanel.Section>
           <ActionPanel.Section title="Report Management">
             <Action
-              title="Re-analyze"
+              title={t('re_analyze')}
               icon={Icon.ArrowClockwise}
               onAction={onReanalyze}
             />
             <Action.Open
-              title="Open JSON Report"
+              title={t('open_json_report')}
               target={reportPath}
               icon={Icon.Code}
             />
@@ -633,12 +628,12 @@ function ReportLoader({ options }: { options: LighthouseOptions }) {
   const [progressPct, setProgressPct] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressTexts = [
-    { upTo: 20, text: 'Preparando entorno y resolviendo DNS...' },
-    { upTo: 45, text: 'Midiendo rendimiento y tiempos críticos...' },
-    { upTo: 70, text: 'Auditando accesibilidad y mejores prácticas...' },
-    { upTo: 90, text: 'Evaluando SEO y metadatos...' },
-    { upTo: 99, text: 'Generando reporte enriquecido...' },
-    { upTo: 100, text: 'Listo: presentando resultados.' },
+    { upTo: 20, text: t('progress_prep_dns') },
+    { upTo: 45, text: t('progress_performance') },
+    { upTo: 70, text: t('progress_accessibility') },
+    { upTo: 90, text: t('progress_seo') },
+    { upTo: 99, text: t('progress_seo') },
+    { upTo: 100, text: t('progress_ready') },
   ];
 
   const { isLoading, data, error, revalidate } = usePromise(
