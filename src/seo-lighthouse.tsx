@@ -22,28 +22,38 @@ import {
   LighthouseOptions,
   processUrl,
 } from './utils/lighthouse';
-import { t } from './utils/i18n';
+
+const CATEGORY_LABELS: Record<string, string> = {
+  performance: 'Performance',
+  accessibility: 'Accessibility',
+  'best-practices': 'Best Practices',
+  seo: 'SEO',
+  pwa: 'PWA',
+};
+
+const getCategoryLabel = (key: string) => CATEGORY_LABELS[key] || key;
 
 function DetailedAuditsView({ report }: { report: LighthouseReport }) {
   const generateMarkdown = () => {
     const descMap: Record<string, string> = {
-      interactive: t('desc_interactive'),
-      'first-contentful-paint': t('desc_fcp'),
-      'largest-contentful-paint': t('desc_lcp'),
-      'speed-index': t('desc_speed_index'),
-      'total-blocking-time': t('desc_tbt'),
-      'cumulative-layout-shift': t('desc_cls'),
-      'main-thread-tasks': t('desc_mainthread'),
-      'total-byte-weight': t('desc_totalbyte'),
+      interactive:
+        'Time to Interactive is the time it takes for the page to become fully interactive.',
+      'first-contentful-paint': 'First Contentful Paint marks when the first text or image is painted.',
+      'largest-contentful-paint': 'Largest Contentful Paint marks when the largest text or image is painted.',
+      'speed-index': 'Speed Index shows how quickly the contents of a page are visibly populated.',
+      'total-blocking-time': 'Total Blocking Time measures how long the main thread was blocked by long tasks.',
+      'cumulative-layout-shift': 'Cumulative Layout Shift measures unexpected layout shift that affects visual stability.',
+      'main-thread-tasks': 'Main Thread Work measures time spent in JavaScript and style/layout tasks.',
+      'total-byte-weight': 'Total Byte Weight is the combined download size of all page resources.',
     };
 
-    let markdown = `# ${t('detailed_fields_title')}\n\n`;
+    let markdown = `# Detailed Field Guide\n\n`;
 
     const categories = [
-      { id: 'performance', title: t('performance') },
-      { id: 'accessibility', title: t('accessibility') },
-      { id: 'best-practices', title: t('best_practices') },
-      { id: 'seo', title: t('seo') },
+      { id: 'performance', title: 'Performance' },
+      { id: 'accessibility', title: 'Accessibility' },
+      { id: 'best-practices', title: 'Best Practices' },
+      { id: 'seo', title: 'SEO' },
     ];
 
     categories.forEach(cat => {
@@ -57,9 +67,9 @@ function DetailedAuditsView({ report }: { report: LighthouseReport }) {
         .sort((a, b) => (a.score || 0) - (b.score || 0));
 
       if (audits.length === 0) {
-        markdown += `_${t('no_issues_found')}_\n\n`;
+        markdown += `_No issues found in this category._\n\n`;
       } else {
-        markdown += `| ${t('status')} | ${t('field')} | ${t('description')} |\n|:---:|:---|:---|\n`;
+        markdown += `| Status | Field | Description |\n|:---:|:---|:---|\n`;
         audits.forEach(audit => {
           const score = audit.score ?? 0;
           const statusIcon = score >= 0.9 ? '🟢' : score >= 0.5 ? '🟡' : '🔴';
@@ -139,7 +149,7 @@ function LighthouseReportView({
   };
 
   const generateMarkdownContent = () => {
-    let markdown = `# ${t('report_title')}\n\n`;
+    let markdown = `# Lighthouse Analysis Report\n\n`;
 
     // AI Analysis Section
     if (aiAnalysis) {
@@ -151,8 +161,8 @@ function LighthouseReportView({
       markdown += `> [!NOTE]\n> **AI is analyzing findings...**\n\n---\n\n`;
     }
 
-    markdown += `## ${t('performance_and_core_metrics')} (${t('critical')})\n\n`;
-    markdown += `| ${t('status')} | ${t('metric')} | ${t('value')} | ${t('reference')} |\n| :---: | :--- | :--- | :--- |\n`;
+    markdown += `## Performance & Core Metrics (Critical)\n\n`;
+    markdown += `| Status | Metric | Value | Benchmark |\n| :---: | :--- | :--- | :--- |\n`;
     const perfMetrics = [
       {
         id: 'largest-contentful-paint',
@@ -185,8 +195,8 @@ function LighthouseReportView({
       }
     });
 
-    markdown += `\n## ${t('seo_accessibility_marketing')}\n\n`;
-    markdown += `| ${t('status')} | ${t('field')} | ${t('value')} |\n|:---:|:---|:---|\n`;
+    markdown += `\n## SEO & Accessibility (Marketing)\n\n`;
+    markdown += `| Status | Field | Value |\n|:---:|:---|:---|\n`;
     const seoScore = report.categories?.seo?.score;
     const accScore = report.categories?.accessibility?.score;
     if (seoScore !== undefined || accScore !== undefined) {
@@ -199,7 +209,7 @@ function LighthouseReportView({
       { id: 'document-title', label: 'Title tag' },
       { id: 'meta-description', label: 'Meta description' },
       { id: 'canonical', label: 'Canonical URL' },
-      { id: 'html-has-lang', label: 'Idioma (html lang)' },
+      { id: 'html-has-lang', label: 'HTML lang attribute' },
       { id: 'structured-data', label: 'Structured Data' },
     ];
     seoFields.forEach(f => {
@@ -207,7 +217,7 @@ function LighthouseReportView({
       if (audit) {
         const extra =
           f.id === 'structured-data' && audit.details?.items
-            ? ` (${(audit.details.items as any[]).map((i: any) => i?.type || i?.name).filter(Boolean).join(', ') || t('no_types')})`
+            ? ` (${(audit.details.items as any[]).map((i: any) => i?.type || i?.name).filter(Boolean).join(', ') || 'no types'})`
             : '';
         markdown += `| ${getStatusIcon(audit.score)} | ${f.label} | ${audit.displayValue || audit.title || '-'}${extra} |\n`;
       }
@@ -217,8 +227,8 @@ function LighthouseReportView({
       .filter(a => a.details && (a.details as any).type === 'opportunity')
       .slice(0, 5);
     if (opportunities.length > 0) {
-      markdown += `\n## ${t('priority_opportunities')}\n`;
-      markdown += `| ${t('status')} | ${t('audit')} | ${t('estimated_savings')} | ${t('items')} |\n|:---:|:---|:---|:---|\n`;
+      markdown += `\n## Priority Opportunities (High ROI)\n`;
+      markdown += `| Status | Audit | Estimated Savings | Items |\n|:---:|:---|:---|:---|\n`;
       opportunities.forEach(op => {
         const savingsMs = (op.details as any).overallSavingsMs;
         const savingsBytes = (op.details as any).overallSavingsBytes;
@@ -246,7 +256,7 @@ function LighthouseReportView({
       .map(d => ({ ...d, audit: report.audits?.[d.id] }))
       .filter(d => d.audit);
     if (diagAudits.length) {
-      markdown += `\n## ${t('technical_diagnostics')}\n`;
+      markdown += `\n## Technical Diagnostics\n`;
       diagAudits.forEach(d => {
         const details = (d.audit as any)?.details;
         const blocking =
@@ -259,24 +269,24 @@ function LighthouseReportView({
 
     const warnings = (report as any).runWarnings as string[] | undefined;
     if (warnings && warnings.length) {
-      markdown += `\n### ${t('execution_warnings')}\n`;
+      markdown += `\n### Execution Warnings\n`;
       warnings.forEach(w => {
         markdown += `- ⚠️ ${w}\n`;
       });
     }
 
     markdown += `\n---\n\n`;
-    markdown += `_${t('view_detailed_audits')} in the actions menu (Cmd + D)._\n`;
+    markdown += `_Detailed Field Description in the actions menu (Cmd + D)._\n`;
 
     return markdown;
   };
 
   const generateMetadata = () => {
     const categoriesToShow = [
-      { key: 'performance', name: t('performance') },
-      { id: 'accessibility', name: t('accessibility') },
-      { id: 'best-practices', name: t('best_practices') },
-      { id: 'seo', name: t('seo') },
+      { key: 'performance', name: 'Performance' },
+      { id: 'accessibility', name: 'Accessibility' },
+      { id: 'best-practices', name: 'Best Practices' },
+      { id: 'seo', name: 'SEO' },
     ];
 
     const reportCreatedText = (() => {
@@ -295,7 +305,7 @@ function LighthouseReportView({
 
     return (
       <Detail.Metadata>
-        <Detail.Metadata.TagList title={t('overall_scores')}>
+        <Detail.Metadata.TagList title="Overall Scores">
           {categoriesToShow.map(catInfo => {
             const key = (catInfo as any).key || (catInfo as any).id;
             const cat =
@@ -313,34 +323,23 @@ function LighthouseReportView({
         </Detail.Metadata.TagList>
         <Detail.Metadata.Separator />
         <Detail.Metadata.Label
-          title={t('analysis_domain')}
+          title="Analysis Domain"
           text={getHostname(originalUrl)}
           icon={Icon.Globe}
         />
         <Detail.Metadata.Label
-          title={t('device_mode')}
-          text={
-            report.configSettings?.formFactor === 'mobile'
-              ? t('mobile')
-              : t('desktop')
-          }
-          icon={
-            report.configSettings?.formFactor === 'mobile'
-              ? Icon.Mobile
-              : Icon.Monitor
-          }
+          title="Device Mode"
+          text={report.configSettings?.formFactor === 'mobile' ? 'Mobile' : 'Desktop'}
+          icon={report.configSettings?.formFactor === 'mobile' ? Icon.Mobile : Icon.Monitor}
         />
         <Detail.Metadata.Separator />
-        <Detail.Metadata.Label
-          title={t('report_created')}
-          text={reportCreatedText}
-        />
+        <Detail.Metadata.Label title="Report Created" text={reportCreatedText} />
         {lhVersion ? (
           <Detail.Metadata.Label title="Lighthouse" text={`v${lhVersion}`} />
         ) : null}
         {auditDuration ? (
           <Detail.Metadata.Label
-            title={t('audit_duration')}
+            title="Audit Duration"
             text={auditDuration}
             icon={Icon.Clock}
           />
@@ -456,7 +455,7 @@ function LighthouseReportView({
       const prompt = `Act as an expert SEO/Performance engineer. Here is the Lighthouse context (JSON):
 ${JSON.stringify(ctx, null, 2)}
 
-Give a brief executive summary in ${t('language_name')}. Highlight the biggest bottleneck and 3 concrete fixes (short bullets). Focus on performance, accessibility, and SEO impact.`;
+Give a brief executive summary in English. Highlight the biggest bottleneck and 3 concrete fixes (short bullets). Focus on performance, accessibility, and SEO impact.`;
 
       const answer = await AI.ask(prompt);
       if (answer) {
@@ -485,27 +484,27 @@ Give a brief executive summary in ${t('language_name')}. Highlight the biggest b
     const scoreLines = Object.entries(report.categories || {})
       .map(
         ([key, value]) =>
-          `• ${t(key)} — ${Math.round((value.score || 0) * 100)}%`
+          `• ${getCategoryLabel(key)} — ${Math.round((value.score || 0) * 100)}%`
       )
       .join('\n');
 
-    const aiBlock = aiAnalysis ? aiAnalysis : t('email_no_ai');
+    const aiBlock = aiAnalysis ? aiAnalysis : 'No AI insights yet.';
 
-    const fullBody = `${t('email_greeting')}
+    const fullBody = `Hi team,
 
-${t('email_intro')} ${originalUrl}
+I just ran a Lighthouse audit and here are the highlights: ${originalUrl}
 
-${t('email_scores_title')}:
+Scores:
 ${scoreLines || scores}
 
-${t('email_ai_title')}:
+AI Findings:
 ${aiBlock}
 
-${t('email_details_title')}:
-${t('email_report_path')}: ${reportPath}
+Technical details:
+Report path: ${reportPath}
 
-${t('email_footer')}
-${t('email_thanks')}`;
+Sent via SEO Lighthouse Raycast extension.
+Thanks,`;
 
     if (fullBody.length > 1800) {
       return fullBody.substring(0, 1797) + '...';
@@ -539,19 +538,19 @@ ${t('email_thanks')}`;
   const handleComposeMail = async () => {
     try {
       await openMailDraft(
-        `${t('report_title')}: ${getHostname(originalUrl)}`,
+        `Lighthouse Analysis Report: ${getHostname(originalUrl)}`,
         getEmailBody()
       );
       showToast({
         style: Toast.Style.Success,
-        title: t('send_to_developer'),
-        message: t('draft_created'),
+        title: 'Send to Developer',
+        message: 'Draft created in Mail',
       });
     } catch (error: any) {
       showToast({
         style: Toast.Style.Failure,
-        title: t('could_not_create_draft'),
-        message: t('check_mail_installed'),
+        title: 'Could not create draft',
+        message: 'Check that Mail app is installed',
       });
     }
   };
@@ -564,33 +563,33 @@ ${t('email_thanks')}`;
         <ActionPanel>
           <ActionPanel.Section title="AI & Feedback">
             <Action
-              title={t('ask_ai')}
+              title="Ask AI for Insights"
               icon={Icon.Stars}
               onAction={handleAskAI}
               shortcut={{ modifiers: ['cmd'], key: 'i' }}
             />
             <Action.Push
-              title={t('view_detailed_audits')}
+              title="Detailed Field Description"
               icon={Icon.List}
               target={<DetailedAuditsView report={report} />}
               shortcut={{ modifiers: ['cmd'], key: 'd' }}
             />
             {isMac ? (
               <Action
-                title={t('send_email')}
+                title="Send by Mail"
                 icon={Icon.Envelope}
                 onAction={handleComposeMail}
                 shortcut={{ modifiers: ['cmd', 'shift'], key: 'e' }}
               />
             ) : (
               <Action
-                title={t('send_email_macos')}
+                title="Send Email (macOS)"
                 icon={Icon.Envelope}
                 onAction={() =>
                   showToast({
                     style: Toast.Style.Failure,
-                    title: t('not_available_windows'),
-                    message: t('mail_draft_macos_only'),
+                    title: 'Not available on Windows',
+                    message: 'Mail draft only works on macOS',
                   })
                 }
               />
@@ -598,19 +597,19 @@ ${t('email_thanks')}`;
           </ActionPanel.Section>
           <ActionPanel.Section title="Report Management">
             <Action
-              title={t('re_analyze')}
+              title="Re-analyze"
               icon={Icon.ArrowClockwise}
               onAction={onReanalyze}
             />
             <Action.Open
-              title={t('open_json_report')}
+              title="Open JSON Report"
               target={reportPath}
               icon={Icon.Code}
             />
             <Action.ShowInFinder
               path={reportPath}
               icon={Icon.Finder}
-              title={t('show_in_finder')}
+              title="Show in Finder"
             />
           </ActionPanel.Section>
         </ActionPanel>
@@ -628,12 +627,12 @@ function ReportLoader({ options }: { options: LighthouseOptions }) {
   const [progressPct, setProgressPct] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressTexts = [
-    { upTo: 20, text: t('progress_prep_dns') },
-    { upTo: 45, text: t('progress_performance') },
-    { upTo: 70, text: t('progress_accessibility') },
-    { upTo: 90, text: t('progress_seo') },
-    { upTo: 99, text: t('progress_seo') },
-    { upTo: 100, text: t('progress_ready') },
+    { upTo: 20, text: 'Preparing environment and resolving DNS...' },
+    { upTo: 45, text: 'Measuring performance and critical times...' },
+    { upTo: 70, text: 'Auditing accessibility and best practices...' },
+    { upTo: 90, text: 'Evaluating SEO and metadata...' },
+    { upTo: 99, text: 'Evaluating SEO and metadata...' },
+    { upTo: 100, text: 'Ready: presenting results' },
   ];
 
   const { isLoading, data, error, revalidate } = usePromise(
@@ -689,19 +688,19 @@ function ReportLoader({ options }: { options: LighthouseOptions }) {
       <Detail
         markdown={
           isInstallError
-            ? `# ${t('lighthouse_missing_title')}\n\nGoogle Lighthouse CLI is required.\n\n\`\`\`bash\nnpm install -g lighthouse\n\`\`\``
-            : `# ${t('audit_error_title')}\n\n${error.message}`
+            ? `# Lighthouse Missing\n\nGoogle Lighthouse CLI is required.\n\n\`\`\`bash\nnpm install -g lighthouse\n\`\`\``
+            : `# Audit Error\n\n${error.message}`
         }
         actions={
           <ActionPanel>
             {isInstallError ? (
               <Action.CopyToClipboard
-                title={t('copy_install_command')}
+                title="Copy Install Command"
                 content="npm install -g lighthouse"
               />
             ) : null}
             <Action
-              title={t('try_again')}
+              title="Try Again"
               icon={Icon.ArrowClockwise}
               onAction={revalidate}
             />
@@ -731,7 +730,7 @@ function ReportLoader({ options }: { options: LighthouseOptions }) {
     return (
       <Detail
         isLoading={true}
-        markdown={`# ${t('loading_summary')}\n\n${t('analyzing')}\n\n**Domain:** ${hostname}\n\n![Party Parrot](https://cultofthepartyparrot.com/parrots/hd/parrot.gif)\n\n${bar}\n\n_${phase.text}_`}
+        markdown={`# Generating your professional SEO report... the party parrot is checking your tags!\n\nAnalyzing\n\n**Domain:** ${hostname}\n\n![Party Parrot](https://cultofthepartyparrot.com/parrots/hd/parrot.gif)\n\n${bar}\n\n_${phase.text}_`}
       />
     );
   }
@@ -792,7 +791,7 @@ export default function Command() {
       actions={
         <ActionPanel>
           <Action.SubmitForm
-            title={t('form_analyze_button')}
+            title="Run Lighthouse Audit"
             icon={Icon.Check}
             onSubmit={handleSubmit}
           />
@@ -804,42 +803,42 @@ export default function Command() {
         </ActionPanel>
       }
     >
-      <Form.Description text={t('form_section_basic')} />
+      <Form.Description text="Basic Configuration" />
       <Form.TextField
-        title={t('form_url_title')}
-        placeholder={t('form_url_placeholder')}
+        title="Website URL"
+        placeholder="https://example.com"
         {...itemProps.url}
       />
       <Form.Dropdown
-        title={t('form_device_title')}
+        title="Device Mode"
         {...(itemProps.device as any)}
       >
         <Form.Dropdown.Item
           value="mobile"
-          title={t('mobile')}
+          title="Mobile"
           icon={Icon.Mobile}
         />
         <Form.Dropdown.Item
           value="desktop"
-          title={t('desktop')}
+          title="Desktop"
           icon={Icon.Monitor}
         />
       </Form.Dropdown>
 
       <Form.Separator />
-      <Form.Description text={t('form_section_categories')} />
-      <Form.Checkbox label={t('form_perf_title')} {...itemProps.performance} />
-      <Form.Checkbox label={t('form_acc_title')} {...itemProps.accessibility} />
-      <Form.Checkbox label={t('form_bp_title')} {...itemProps.bestPractices} />
-      <Form.Checkbox label={t('form_seo_title')} {...itemProps.seo} />
+      <Form.Description text="Analysis Categories" />
+      <Form.Checkbox label="Performance Analysis" {...itemProps.performance} />
+      <Form.Checkbox label="Accessibility Analysis" {...itemProps.accessibility} />
+      <Form.Checkbox label="Best Practices Analysis" {...itemProps.bestPractices} />
+      <Form.Checkbox label="SEO Analysis" {...itemProps.seo} />
 
       <Form.Separator />
-      <Form.Description text={t('form_section_advanced')} />
+      <Form.Description text="Advanced Settings" />
       <Form.TextField
-        title={t('form_output_title')}
+        title="Output Folder"
         {...itemProps.outputPath}
       />
-      <Form.Description text={t('form_output_helper')} />
+      <Form.Description text="Click the 'Choose Output Directory' button in the actions panel to select where the JSON report will be saved." />
     </Form>
   );
 }
